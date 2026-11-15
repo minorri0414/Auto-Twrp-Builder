@@ -83,9 +83,19 @@ def _patch_device_tree(device_tree_path: Path):
         board_config.read_text()
         + "\n# Generated for OPPO PDPM00\n"
         + "TARGET_RECOVERY_FSTAB := $(DEVICE_PATH)/recovery.fstab\n"
-        + "BOARD_USES_METADATA_PARTITION := true\n"
         + "TW_INCLUDE_REPACKTOOLS := true\n"
     )
+
+    # The AOSP-based TWRP manifest puts the common product config in
+    # vendor/twrp, while twrpdtgen's template targets the older omni manifest.
+    if Path("vendor/twrp/config/common.mk").is_file():
+        for product_mk in device_tree_path.glob("omni_*.mk"):
+            product_mk.write_text(
+                product_mk.read_text().replace(
+                    "vendor/omni/config/common.mk",
+                    "vendor/twrp/config/common.mk",
+                )
+            )
 
     recovery_fstab = device_tree_path / "recovery.fstab"
     lines = []
