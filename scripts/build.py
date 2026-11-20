@@ -68,14 +68,14 @@ def _inject_ramdisk_files(self, image, ignore_ramdisk_errors=False):
 AIKManager.unpackimg = _inject_ramdisk_files
 
 
-def _patch_device_tree(device_tree_path: Path):
+def _patch_device_tree(device_tree_path: Path, shipping_api_level: int = 30):
     """Add the bits a generated tree needs for this dynamic-partition device."""
     device_mk = device_tree_path / "device.mk"
     device_mk.write_text(
         device_mk.read_text()
-        + "\n# OPPO PDPM00 (sm7250, dynamic partitions)\n"
+        + "\n# OPPO PDPM00 (lito/sm7250, dynamic partitions)\n"
         + "PRODUCT_USE_DYNAMIC_PARTITIONS := true\n"
-        + "PRODUCT_SHIPPING_API_LEVEL := 30\n"
+        + f"PRODUCT_SHIPPING_API_LEVEL := {shipping_api_level}\n"
     )
 
     board_config = device_tree_path / "BoardConfig.mk"
@@ -123,7 +123,8 @@ if __name__ == "__main__":
 
     device_tree = DeviceTree(Path(args.input))
     device_tree_path = device_tree.dump_to_folder(Path(args.output))
-    _patch_device_tree(Path(device_tree_path))
+    shipping_api_level = device_tree.build_prop.get_prop_int("ro.build.version.sdk", 30)
+    _patch_device_tree(Path(device_tree_path), shipping_api_level=shipping_api_level)
 
     if os.getenv("GITHUB_OUTPUT", ""):
         with open(os.getenv("GITHUB_OUTPUT", ""), "w") as f:
