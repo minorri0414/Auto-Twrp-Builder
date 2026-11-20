@@ -86,6 +86,17 @@ def _patch_device_tree(device_tree_path: Path, shipping_api_level: int = 30):
         + "TW_INCLUDE_REPACKTOOLS := true\n"
     )
 
+    # twrpdtgen emits one entry per fstab line, so ext4/erofs pairs produce
+    # duplicate logical partition names.  A duplicate list breaks the
+    # dynamic-partition build.
+    board_lines = board_config.read_text().splitlines()
+    for index, line in enumerate(board_lines):
+        if line.startswith("BOARD_OPPO_DYNAMIC_PARTITIONS_PARTITION_LIST"):
+            prefix, values = line.split(":=", 1)
+            unique = list(dict.fromkeys(values.split()))
+            board_lines[index] = f"{prefix}:= {' '.join(unique)}"
+    board_config.write_text("\n".join(board_lines) + "\n")
+
     # The AOSP-based TWRP manifest puts the common product config in
     # vendor/twrp, while twrpdtgen's template targets the older omni manifest.
     if Path("vendor/twrp/config/common.mk").is_file():
